@@ -1,0 +1,36 @@
+# releases/<surum>/ altina parcali yuklenen kurulum dosyalarini birlestirip GitHub Release olarak yayinlar.
+name: Sürüm yayınla
+on:
+  push:
+    branches: [yayin]
+permissions:
+  contents: write
+jobs:
+  yayinla:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: yayin
+      - name: Parçaları birleştir ve yayınla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          V=$(cat yayin/SURUM)
+          mkdir -p out
+          cat yayin/setup.part* > "out/Claude-Terminal-Setup-$V.exe"
+          cp yayin/latest.yml yayin/*.blockmap out/
+          (cd out && sha512sum "Claude-Terminal-Setup-$V.exe" && cat latest.yml)
+          # latest.yml'deki sha512 ile birlestirilen dosya ayni mi
+          python3 - "$V" <<'PY'
+          import sys, hashlib, base64, re
+          v = sys.argv[1]
+          h = base64.b64encode(hashlib.sha512(open(f"out/Claude-Terminal-Setup-{v}.exe", "rb").read()).digest()).decode()
+          y = open("out/latest.yml").read()
+          assert h in y, "sha512 uyuşmuyor"
+          print("sha512 doğrulandı")
+          PY
+          if gh release view "v$V" >/dev/null 2>&1; then gh release upload "v$V" out/* --clobber; else
+            gh release create "v$V" out/* --target main --title "Claude Terminal $V" --notes-file yayin/NOTLAR.md; fi
+          git push origin --delete yayin || true
