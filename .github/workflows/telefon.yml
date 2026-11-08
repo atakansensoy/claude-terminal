@@ -1,0 +1,36 @@
+name: Telefon APK
+on:
+  push:
+    branches: [main]
+    paths: ['telefon/**', '.github/workflows/telefon.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v3
+        with: { gradle-version: '8.7' }
+      - name: İmza anahtarı (önbellekte saklanır, depoya girmez)
+        uses: actions/cache@v4
+        with: { path: ks, key: kumanda-ks-v1 }
+      - name: Anahtar yoksa oluştur
+        env: { KS_PASS: 'kumanda-telefon-imza' }
+        run: |
+          mkdir -p ks
+          [ -f ks/kumanda.jks ] || keytool -genkeypair -keystore ks/kumanda.jks -storepass "$KS_PASS" -keypass "$KS_PASS" -alias kumanda -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Kumanda, O=Kumanda, C=TR"
+      - name: Derle
+        working-directory: telefon
+        env: { KS_FILE: '${{ github.workspace }}/ks/kumanda.jks', KS_PASS: 'kumanda-telefon-imza' }
+        run: gradle --no-daemon assembleRelease
+      - name: Yayınla
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          cp telefon/app/build/outputs/apk/release/app-release.apk Kumanda-Telefon.apk
+          gh release view telefon -R ${{ github.repository }} >/dev/null 2>&1 || gh release create telefon -R ${{ github.repository }} --title "Kumanda Telefon (Android)" --notes "Telefon uygulaması. Bir kez kur, bilgisayardaki QR'ı okut; sonraki tüm yenilikler bilgisayardan gelir, APK güncellemesi gerekmez." --latest=false
+          gh release upload telefon Kumanda-Telefon.apk -R ${{ github.repository }} --clobber
