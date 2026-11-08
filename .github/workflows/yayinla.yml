@@ -26,7 +26,7 @@ jobs:
           python3 - "$V" <<'PY'
           import sys, hashlib, base64, re
           v = sys.argv[1]
-          h = base64.b64encode(hashlib.sha512(open(f"out/Claude-Terminal-Setup-{v}.exe", "rb").read()).digest()).decode()
+          h = base64.b64encode(hashlib.sha512(open(f"out/Kumanda-Kurulum-{v}.exe", "rb").read()).digest()).decode()
           y = open("out/latest.yml").read()
           assert h in y, "sha512 uyuşmuyor"
           print("sha512 doğrulandı")
