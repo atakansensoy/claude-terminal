@@ -32,7 +32,7 @@ import okhttp3.WebSocketListener;
  */
 public class NotifyService extends Service {
     public static final String CH_LIVE = "kumanda_live";
-    public static final String CH_EVENTS = "kumanda";
+    public static final String CH_EVENTS = "kumanda_events2";   // ses + titresim (kanal ayarlari olusturulunca sabitlenir, o yuzden yeni kimlik)
     private static final int ID_LIVE = 7001;
     private OkHttpClient http;
     private WebSocket ws;
@@ -55,8 +55,11 @@ public class NotifyService extends Service {
             NotificationChannel live = new NotificationChannel(CH_LIVE, "Bağlantı", NotificationManager.IMPORTANCE_MIN);
             live.setDescription("Bilgisayara bağlı kalır (sessiz)"); live.setShowBadge(false);
             nm.createNotificationChannel(live);
-            NotificationChannel ev = new NotificationChannel(CH_EVENTS, "Kumanda", NotificationManager.IMPORTANCE_HIGH);
-            ev.setDescription("Onay bekliyor, soru soruyor, iş bitti");
+            NotificationChannel ev = new NotificationChannel(CH_EVENTS, "Kumanda olayları", NotificationManager.IMPORTANCE_HIGH);
+            ev.setDescription("Onay bekliyor, soru soruyor, iş bitti — ses ve titreşimle");
+            ev.enableVibration(true); ev.setVibrationPattern(new long[]{0, 250, 120, 250});
+            ev.enableLights(true); ev.setLightColor(0xFFE08A5B);
+            ev.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
             nm.createNotificationChannel(ev);
         }
         http = new OkHttpClient.Builder().pingInterval(25, TimeUnit.SECONDS).readTimeout(0, TimeUnit.MILLISECONDS).build();
@@ -136,7 +139,9 @@ public class NotifyService extends Service {
         NotificationCompat.Builder b = new NotificationCompat.Builder(this, CH_EVENTS)
             .setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(icon + title).setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body)).setAutoCancel(true).setContentIntent(pi)
-            .setPriority("done".equals(kind) ? NotificationCompat.PRIORITY_DEFAULT : NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_SOUND | NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_LIGHTS)
+            .setVibrate(new long[]{0, 250, 120, 250})
             .setCategory("done".equals(kind) ? NotificationCompat.CATEGORY_STATUS : NotificationCompat.CATEGORY_REMINDER);
         try { ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(("kumanda-" + kind + "-" + m.optString("tabId")).hashCode(), b.build()); } catch (Exception ignored) {}
     }

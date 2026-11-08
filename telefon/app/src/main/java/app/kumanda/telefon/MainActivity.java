@@ -48,7 +48,7 @@ import androidx.activity.result.ActivityResultLauncher;
 public class MainActivity extends AppCompatActivity {
     private static final String PREFS = "kumanda";
     private static final String KEY_URL = "url";
-    private static final String CHANNEL = "kumanda";
+    private static final String CHANNEL = "kumanda_events2";
     private WebView web;
     private SharedPreferences prefs;
     private PermissionRequest pendingPerm;
@@ -193,8 +193,9 @@ public class MainActivity extends AppCompatActivity {
     // ---------- Bildirimler ----------
     private void createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "Kumanda", NotificationManager.IMPORTANCE_DEFAULT);
-            ch.setDescription("Yanıt hazır, onay bekliyor");
+            NotificationChannel ch = new NotificationChannel(CHANNEL, "Kumanda olayları", NotificationManager.IMPORTANCE_HIGH);
+            ch.setDescription("Onay bekliyor, soru soruyor, iş bitti — ses ve titreşimle");
+            ch.enableVibration(true); ch.setVibrationPattern(new long[]{0, 250, 120, 250});
             ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(ch);
         }
     }
