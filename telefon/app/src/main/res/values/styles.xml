@@ -1,0 +1,9 @@
+<resources>
+  <style name="Theme.Kumanda" parent="Theme.AppCompat.NoActionBar">
+    <item name="android:windowBackground">#0b0c10</item>
+    <item name="android:statusBarColor">#0b0c10</item>
+    <item name="android:navigationBarColor">#0b0c10</item>
+    <item name="colorPrimary">#e08a5b</item>
+    <item name="colorAccent">#e08a5b</item>
+  </style>
+</resources>
