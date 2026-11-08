@@ -2,7 +2,7 @@
 name: Sürüm yayınla
 on:
   push:
-    branches: [yayin]
+    branches: ['yayin', 'yayin-*']
 permissions:
   contents: write
 jobs:
@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: yayin
+          ref: ${{ github.ref }}
       - name: Parçaları birleştir ve yayınla
         env:
           GH_TOKEN: ${{ github.token }}
@@ -33,4 +33,4 @@ jobs:
           PY
           if gh release view "v$V" >/dev/null 2>&1; then gh release upload "v$V" out/* --clobber; else
             gh release create "v$V" out/* --target main --title "Kumanda $V" --notes-file yayin/NOTLAR.md; fi
-          git push origin --delete yayin || true
+          git push origin --delete "${GITHUB_REF_NAME}" || true
