@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         createChannel();
         String fromIntent = urlFromIntent(getIntent());
         if (fromIntent != null) connectTo(fromIntent);
-        else if (prefs.getString(KEY_URL, null) != null) openWeb(prefs.getString(KEY_URL, null));
+        else if (prefs.getString(KEY_URL, null) != null) { openWeb(prefs.getString(KEY_URL, null)); NotifyService.start(this); }
         else showSetup(null);
     }
 
@@ -121,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
         if (!u.contains("#") && !u.contains("?t=")) { showSetup("Adreste anahtar yok (# işaretinden sonraki bölüm). QR kodu okutmayı dene."); return; }
         prefs.edit().putString(KEY_URL, u).apply();
         openWeb(u);
+        NotifyService.start(this);   // arka planda bagli kal, bildirim getir
     }
 
     // ---------- Web gorunumu ----------
@@ -214,7 +215,7 @@ public class MainActivity extends AppCompatActivity {
             ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(tag == null ? 1 : tag.hashCode(), b.build());
         }
         @JavascriptInterface public void setup() { runOnUiThread(() -> showSetup(null)); }
-        @JavascriptInterface public String version() { return "1.0"; }
+        @JavascriptInterface public String version() { return "1.1"; }
         @JavascriptInterface public void keepScreenOn(boolean on) { runOnUiThread(() -> { if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }); }
     }
 

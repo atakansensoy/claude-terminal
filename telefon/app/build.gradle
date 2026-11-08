@@ -2,7 +2,7 @@ plugins { id 'com.android.application' }
 android {
   namespace 'app.kumanda.telefon'
   compileSdk 34
-  defaultConfig { applicationId 'app.kumanda.telefon'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' }
+  defaultConfig { applicationId 'app.kumanda.telefon'; minSdk 24; targetSdk 34; versionCode 2; versionName '1.1' }
   // Imza anahtari depoda tutulmaz: derleme ortaminda (GitHub Actions onbellegi) olusturulur, yolu ve parolasi ortam degiskeniyle gelir
   signingConfigs { release { def ks = System.getenv('KS_FILE'); if (ks) { storeFile file(ks); storePassword System.getenv('KS_PASS'); keyAlias 'kumanda'; keyPassword System.getenv('KS_PASS') } } }
   buildTypes { release { minifyEnabled false; if (System.getenv('KS_FILE')) signingConfig signingConfigs.release } }
@@ -13,4 +13,5 @@ dependencies {
   implementation 'androidx.appcompat:appcompat:1.7.0'
   implementation 'androidx.webkit:webkit:1.11.0'
   implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }
