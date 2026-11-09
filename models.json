@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-10",
+  "note": "Kumanda model listesi. Uygulama her Pazartesi ilk açılışta (ve 8 günden eskiyse) bu dosyayı çeker. 'default' = aracın kendi varsayılanı, 'auto' = Kumanda'nın okuyucu-model/devir akışı.",
+  "providers": {
+    "claude": {
+      "models": ["default", "auto", "opus", "sonnet", "haiku", "claude-fable-5-1", "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"],
+      "labels": { "opus": "Opus (en güçlü, güncel)", "sonnet": "Sonnet (dengeli, güncel)", "haiku": "Haiku (hızlı, güncel)", "claude-fable-5-1": "Fable 5.1", "claude-opus-5-5": "Opus 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-haiku-5-5": "Haiku 5.5" },
+      "tiers": { "low": "haiku", "mid": "sonnet", "high": "opus" }
+    },
+    "codex": {
+      "models": ["default", "auto", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.3-codex"],
+      "labels": { "gpt-5.6-sol": "GPT-5.6 Sol (en güçlü)", "gpt-5.6-terra": "GPT-5.6 Terra (dengeli)", "gpt-5.6-luna": "GPT-5.6 Luna (hızlı, ucuz)", "gpt-5.3-codex": "GPT-5.3 Codex" },
+      "tiers": { "low": { "model": "gpt-5.6-luna", "effort": "low" }, "mid": { "model": "gpt-5.6-terra", "effort": "medium" }, "high": { "model": "gpt-5.6-sol", "effort": "high" } }
+    },
+    "gemini": {
+      "models": ["default", "auto", "gemini-3-pro-preview", "gemini-3-flash-preview", "gemini-2.5-pro", "gemini-2.5-flash"],
+      "labels": { "gemini-3-pro-preview": "Gemini 3 Pro (önizleme)", "gemini-3-flash-preview": "Gemini 3 Flash (önizleme)", "gemini-2.5-pro": "Gemini 2.5 Pro", "gemini-2.5-flash": "Gemini 2.5 Flash" },
+      "tiers": { "low": "gemini-3-flash-preview", "mid": "gemini-3-flash-preview", "high": "gemini-3-pro-preview" }
+    },
+    "grok": {
+      "models": ["default", "auto", "grok-4.7", "grok-4.6", "grok-code-fast-1"],
+      "labels": { "grok-4.7": "Grok 4.7 (en güçlü)", "grok-4.6": "Grok 4.6", "grok-code-fast-1": "Grok Code Fast (hızlı)" },
+      "tiers": { "low": "grok-code-fast-1", "mid": "grok-4.6", "high": "grok-4.7" }
+    },
+    "antigravity": { "models": ["default", "auto"], "live": "agy models" }
+  }
+}
