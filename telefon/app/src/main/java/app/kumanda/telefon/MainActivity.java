@@ -238,6 +238,6 @@ public class MainActivity extends AppCompatActivity {
         return super.onKeyDown(keyCode, event);
     }
 
-    @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); }
+    @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); NotifyService.clearEvents(this); }
     @Override protected void onPause() { super.onPause(); if (web != null) web.onPause(); }
 }

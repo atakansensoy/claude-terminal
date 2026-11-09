@@ -58,19 +58,32 @@ public class NotifyService extends Service {
             NotificationChannel ev = new NotificationChannel(CH_EVENTS, "Kumanda olayları", NotificationManager.IMPORTANCE_HIGH);
             ev.setDescription("Onay bekliyor, soru soruyor, iş bitti — ses ve titreşimle");
             ev.enableVibration(true); ev.setVibrationPattern(new long[]{0, 250, 120, 250});
-            ev.enableLights(true); ev.setLightColor(0xFFE08A5B);
+            ev.enableLights(true); ev.setLightColor(0xFFE08A5B); ev.setShowBadge(true);
             ev.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, new android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
             nm.createNotificationChannel(ev);
         }
         http = new OkHttpClient.Builder().pingInterval(25, TimeUnit.SECONDS).readTimeout(0, TimeUnit.MILLISECONDS).build();
     }
 
+    public static final String ACT_ANSWER = "app.kumanda.telefon.ANSWER";
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(ID_LIVE, liveNotification("Bilgisayara bağlanıyor…"));
         stopped = false;
+        if (intent != null && ACT_ANSWER.equals(intent.getAction())) {
+            // Bildirimdeki dugme: Onayla / Hayir / Izin ver -> bilgisayara ws ile ilet
+            String tabId = intent.getStringExtra("tabId"), key = intent.getStringExtra("key"), kind = intent.getStringExtra("kind");
+            try {
+                JSONObject j = "consent".equals(kind) ? new JSONObject().put("type", "action").put("name", "consent").put("tabId", tabId)
+                                                     : new JSONObject().put("type", "answer").put("tabId", tabId).put("key", key);
+                if (ws == null || !ws.send(j.toString())) { pendingSend = j.toString(); connect(); }
+            } catch (Exception ignored) {}
+            try { ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(intent.getIntExtra("nid", 0)); } catch (Exception ignored) {}
+            return START_STICKY;
+        }
         connect();
         return START_STICKY;
     }
+    private String pendingSend = null;
 
     private Notification liveNotification(String text) {
         Intent open = new Intent(this, MainActivity.class);
@@ -108,6 +121,7 @@ public class NotifyService extends Service {
             @Override public void onOpen(WebSocket w, Response r) {
                 retry = 0; updateLive("Bilgisayara bağlı");
                 try { w.send(new JSONObject().put("type", "auth").put("token", token).toString()); } catch (Exception ignored) {}
+                if (pendingSend != null) { final String p = pendingSend; pendingSend = null; h.postDelayed(() -> { try { w.send(p); } catch (Exception ignored) {} }, 400); }
             }
             @Override public void onMessage(WebSocket w, String text) {
                 try {
@@ -126,6 +140,15 @@ public class NotifyService extends Service {
         h.postDelayed(this::connect, wait);
     }
 
+    private PendingIntent answerIntent(int nid, String tabId, String key, String kind, int which) {
+        Intent i = new Intent(this, NotifyService.class).setAction(ACT_ANSWER).putExtra("tabId", tabId).putExtra("key", key).putExtra("kind", kind).putExtra("nid", nid);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0);
+        return Build.VERSION.SDK_INT >= 26 ? PendingIntent.getForegroundService(this, nid * 10 + which, i, flags) : PendingIntent.getService(this, nid * 10 + which, i, flags);
+    }
+    /** Uygulama acilinca olay bildirimlerini temizle (simge rozeti sifirlansin) */
+    public static void clearEvents(Context c) {
+        try { NotificationManager nm = (NotificationManager) c.getSystemService(NOTIFICATION_SERVICE); if (Build.VERSION.SDK_INT >= 23) { for (android.service.notification.StatusBarNotification s : nm.getActiveNotifications()) if (s.getId() != ID_LIVE) nm.cancel(s.getId()); } } catch (Exception ignored) {}
+    }
     private void show(JSONObject m) {
         String kind = m.optString("kind"), title = m.optString("title", "Kumanda"), body = m.optString("body", "");
         String key = kind + "|" + m.optString("tabId") + "|" + body;
@@ -136,14 +159,25 @@ public class NotifyService extends Service {
         open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pi = PendingIntent.getActivity(this, key.hashCode(), open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         String icon = "done".equals(kind) ? "✅ " : "approval".equals(kind) || "consent".equals(kind) ? "⚠️ " : "❓ ";
+        int nid = ("kumanda-" + kind + "-" + m.optString("tabId")).hashCode();
+        int pendingN = 1; try { if (Build.VERSION.SDK_INT >= 23) { pendingN = 0; for (android.service.notification.StatusBarNotification sn : ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).getActiveNotifications()) if (sn.getId() != ID_LIVE) pendingN++; pendingN++; } } catch (Exception ignored) {}
         NotificationCompat.Builder b = new NotificationCompat.Builder(this, CH_EVENTS)
+            .setNumber(pendingN).setBadgeIconType(NotificationCompat.BADGE_ICON_SMALL)
             .setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(icon + title).setContentText(body)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(body)).setAutoCancel(true).setContentIntent(pi)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_SOUND | NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_LIGHTS)
             .setVibrate(new long[]{0, 250, 120, 250})
             .setCategory("done".equals(kind) ? NotificationCompat.CATEGORY_STATUS : NotificationCompat.CATEGORY_REMINDER);
-        try { ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(("kumanda-" + kind + "-" + m.optString("tabId")).hashCode(), b.build()); } catch (Exception ignored) {}
+        // Dogrudan bildirimden yanit: Onayla / Hayir (onay), Izin ver (izin). Soru icin uygulamayi ac.
+        if ("approval".equals(kind) || "consent".equals(kind)) {
+            String tabId = m.optString("tabId");
+            if ("approval".equals(kind)) {
+                b.addAction(0, "✅ Onayla", answerIntent(nid, tabId, "yes", kind, 1));
+                b.addAction(0, "✋ Hayır", answerIntent(nid, tabId, "no", kind, 2));
+            } else b.addAction(0, "✅ İzin ver", answerIntent(nid, tabId, "yes", kind, 1));
+        }
+        try { ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(nid, b.build()); } catch (Exception ignored) {}
     }
 
     @Override public void onDestroy() { stopped = true; try { if (ws != null) ws.close(1000, "bye"); } catch (Exception ignored) {} super.onDestroy(); }
